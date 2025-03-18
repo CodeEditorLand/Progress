@@ -2,7 +2,7 @@
 
 First you'll need to build the bundle:
 ```
-yarn build
+pnpm build
 ```
 
 This puts the complete js file in the `dist` folder.

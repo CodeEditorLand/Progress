@@ -122,6 +122,7 @@ table_0 (weather_seattle_atlanta) sample:
     "data_summary": "This dataset contains weather information for the cities of Seattle and Atlanta. The fields include the date, city name, and temperature readings. The 'Date' field represents dates in a string format, the 'City' field represents city names, and the 'Temperature' field represents temperature values in integer format."  
 }```'''
 
+
 class DataLoadAgent(object):
 
     def __init__(self, client):
@@ -129,29 +130,30 @@ class DataLoadAgent(object):
 
     def run(self, input_data, n=1):
 
-        data_summary = generate_data_summary([input_data], include_data_samples=True, field_sample_size=30)
+        data_summary = generate_data_summary(
+            [input_data], include_data_samples=True, field_sample_size=30)
 
         user_query = f"[DATA]\n\n{data_summary}\n\n[OUTPUT]"
 
         logger.info(user_query)
 
-        messages = [{"role":"system", "content": SYSTEM_PROMPT},
-                    {"role":"user","content": user_query}]
-        
-        ###### the part that calls open_ai
-        response = self.client.get_completion(messages = messages)
+        messages = [{"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": user_query}]
 
-        #log = {'messages': messages, 'response': response.model_dump(mode='json')}
+        # the part that calls open_ai
+        response = self.client.get_completion(messages=messages)
+
+        # log = {'messages': messages, 'response': response.model_dump(mode='json')}
 
         candidates = []
         for choice in response.choices:
-            
+
             logger.info("\n=== Data load result ===>\n")
             logger.info(choice.message.content + "\n")
-            
+
             json_blocks = extract_json_objects(choice.message.content + "\n")
             logger.info(json_blocks)
-            
+
             if len(json_blocks) > 0:
                 result = {'status': 'ok', 'content': json_blocks[0]}
             else:
@@ -159,10 +161,12 @@ class DataLoadAgent(object):
                     json_block = json.loads(choice.message.content + "\n")
                     result = {'status': 'ok', 'content': json_block}
                 except:
-                    result = {'status': 'other error', 'content': 'unable to extract VegaLite script from response'}
-            
+                    result = {'status': 'other error',
+                              'content': 'unable to extract VegaLite script from response'}
+
             # individual dialog for the agent
-            result['dialog'] = [*messages, {"role": choice.message.role, "content": choice.message.content}]
+            result['dialog'] = [
+                *messages, {"role": choice.message.role, "content": choice.message.content}]
             result['agent'] = 'DataLoadAgent'
 
             candidates.append(result)

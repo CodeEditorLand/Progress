@@ -68,7 +68,7 @@ note:
     3. The [OUTPUT] must only contain a json object representing the refined goal (including "detailed_instruction", "output_fields", "visualization_fields" and "reason") and a python code block representing the transformation code, do not add any extra text explanation.
 '''
 
-EXAMPLE='''
+EXAMPLE = '''
 
 For example:
 
@@ -184,10 +184,11 @@ def transform_data(df):
 ```
 '''
 
+
 def completion_response_wrapper(client, messages, n):
-    ### wrapper for completion response, especially handling errors
+    # wrapper for completion response, especially handling errors
     try:
-        response = client.get_completion(messages = messages)
+        response = client.get_completion(messages=messages)
     except Exception as e:
         response = e
 
@@ -203,32 +204,35 @@ class DataTransformationAgentV2(object):
     def process_gpt_response(self, input_tables, messages, response):
         """process gpt response to handle execution"""
 
-        #log = {'messages': messages, 'response': response.model_dump(mode='json')}
-        #logger.info("=== prompt_filter_results ===>")
-        #logger.info(response.prompt_filter_results)
+        # log = {'messages': messages, 'response': response.model_dump(mode='json')}
+        # logger.info("=== prompt_filter_results ===>")
+        # logger.info(response.prompt_filter_results)
 
         if isinstance(response, Exception):
             result = {'status': 'other error', 'content': str(response.body)}
             return [result]
-        
+
         candidates = []
         for choice in response.choices:
             logger.info("=== Data transformation result ===>")
             logger.info(choice.message.content + "\n")
-            
+
             json_blocks = extract_json_objects(choice.message.content + "\n")
             if len(json_blocks) > 0:
                 refined_goal = json_blocks[0]
             else:
-                refined_goal = {'visualization_fields': [], 'instruction': '', 'reason': ''}
+                refined_goal = {'visualization_fields': [],
+                                'instruction': '', 'reason': ''}
 
-            code_blocks = extract_code_from_gpt_response(choice.message.content + "\n", "python")
+            code_blocks = extract_code_from_gpt_response(
+                choice.message.content + "\n", "python")
 
             if len(code_blocks) > 0:
                 code_str = code_blocks[-1]
 
                 try:
-                    result = py_sandbox.run_transform_in_sandbox2020(code_str, [t['rows'] for t in input_tables])
+                    result = py_sandbox.run_transform_in_sandbox2020(
+                        code_str, [t['rows'] for t in input_tables])
                     result['code'] = code_str
 
                     if result['status'] == 'ok':
@@ -240,11 +244,14 @@ class DataTransformationAgentV2(object):
                     logger.warning('Error occurred during code execution:')
                     error_message = f"An error occurred during code execution. Error type: {type(e).__name__}"
                     logger.warning(error_message)
-                    result = {'status': 'error', 'code': code_str, 'content': error_message}
+                    result = {'status': 'error', 'code': code_str,
+                              'content': error_message}
             else:
-                result = {'status': 'error', 'code': "", 'content': "No code block found in the response. The model is unable to generate code to complete the task."}
-            
-            result['dialog'] = [*messages, {"role": choice.message.role, "content": choice.message.content}]
+                result = {'status': 'error', 'code': "",
+                          'content': "No code block found in the response. The model is unable to generate code to complete the task."}
+
+            result['dialog'] = [
+                *messages, {"role": choice.message.role, "content": choice.message.content}]
             result['agent'] = 'DataTransformationAgent'
             result['refined_goal'] = refined_goal
             candidates.append(result)
@@ -259,7 +266,6 @@ class DataTransformationAgentV2(object):
 
         return candidates
 
-
     def run(self, input_tables, description, expected_fields: list[str], prev_messages: list[dict] = [], n=1):
 
         if len(prev_messages) > 0:
@@ -269,9 +275,11 @@ class DataTransformationAgentV2(object):
                 if m['role'] != 'system':
                     formatted_prev_messages += f"{m['role']}: \n\n\t{m['content']}\n\n"
             logger.info(formatted_prev_messages)
-            prev_messages = [{"role": "user", "content": '[Previous Messages] Here are the previous messages for your reference:\n\n' + formatted_prev_messages}]
+            prev_messages = [
+                {"role": "user", "content": '[Previous Messages] Here are the previous messages for your reference:\n\n' + formatted_prev_messages}]
 
-        data_summary = generate_data_summary(input_tables, include_data_samples=True)
+        data_summary = generate_data_summary(
+            input_tables, include_data_samples=True)
 
         goal = {
             "instruction": description,
@@ -282,14 +290,13 @@ class DataTransformationAgentV2(object):
 
         logger.info(user_query)
 
-        messages = [{"role":"system", "content": self.system_prompt},
+        messages = [{"role": "system", "content": self.system_prompt},
                     *prev_messages,
-                    {"role":"user","content": user_query}]
-        
+                    {"role": "user", "content": user_query}]
+
         response = completion_response_wrapper(self.client, messages, n)
 
         return self.process_gpt_response(input_tables, messages, response)
-        
 
     def followup(self, input_tables, dialog, output_fields: list[str], new_instruction: str, n=1):
         """extend the input data (in json records format) to include new fields"""
@@ -301,12 +308,13 @@ class DataTransformationAgentV2(object):
 
         logger.info(f"GOAL: \n\n{goal}")
 
-        #logger.info(dialog)
+        # logger.info(dialog)
 
-        updated_dialog = [{"role":"system", "content": self.system_prompt}, *dialog[1:]]
+        updated_dialog = [
+            {"role": "system", "content": self.system_prompt}, *dialog[1:]]
 
-        messages = [*updated_dialog, {"role":"user", 
-                              "content": f"Update the code above based on the following instruction:\n\n{json.dumps(goal, indent=4)}"}]
+        messages = [*updated_dialog, {"role": "user",
+                                      "content": f"Update the code above based on the following instruction:\n\n{json.dumps(goal, indent=4)}"}]
 
         response = completion_response_wrapper(self.client, messages, n)
 

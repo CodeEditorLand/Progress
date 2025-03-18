@@ -3,13 +3,15 @@ import litellm
 import openai
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 
+
 class Client(object):
     """
     Returns a LiteLLM client configured for the specified endpoint and model.
     Supports OpenAI, Azure, Ollama, and other providers via LiteLLM.
     """
+
     def __init__(self, endpoint, model, api_key=None,  api_base=None, api_version=None):
-        
+
         self.endpoint = endpoint
         self.model = model
 
@@ -60,11 +62,11 @@ class Client(object):
         Returns a LiteLLM client configured for the specified endpoint and model.
         Supports OpenAI, Azure, Ollama, and other providers via LiteLLM.
         """
-        # Configure LiteLLM 
+        # Configure LiteLLM
 
         if self.endpoint == "openai":
             client = openai.OpenAI(
-                api_key=self.params["api_key"], 
+                api_key=self.params["api_key"],
                 base_url=self.params["api_base"] if "api_base" in self.params else None,
                 timeout=120
             )
@@ -73,11 +75,11 @@ class Client(object):
                 "model": self.model,
                 "messages": messages,
             }
-            
+
             if not (self.model == "o3-mini" or self.model == "o1"):
                 completion_params["temperature"] = self.params["temperature"]
                 completion_params["max_tokens"] = self.params["max_completion_tokens"]
-                
+
             return client.chat.completions.create(**completion_params)
         else:
             return litellm.completion(

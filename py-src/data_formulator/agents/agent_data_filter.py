@@ -129,20 +129,22 @@ class DataFilterAgent(object):
         self.client = client
 
     def process_gpt_result(self, input_table, response, messages):
-        #log = {'messages': messages, 'response': response.model_dump(mode='json')}
+        # log = {'messages': messages, 'response': response.model_dump(mode='json')}
 
         candidates = []
         for choice in response.choices:
-            
+
             logger.info("\n=== python data filter results ===>\n")
             logger.info(choice.message.content + "\n")
 
-            code_blocks = extract_code_from_gpt_response(choice.message.content + "\n", "python")
+            code_blocks = extract_code_from_gpt_response(
+                choice.message.content + "\n", "python")
 
             if len(code_blocks) > 0:
                 code_str = code_blocks[-1]
                 try:
-                    result =  py_sandbox.run_filter_data_in_sandbox2020(code_str, input_table['rows'])
+                    result = py_sandbox.run_filter_data_in_sandbox2020(
+                        code_str, input_table['rows'])
 
                     if result['status'] == 'ok':
                         new_data = json.loads(result['content'])
@@ -154,9 +156,11 @@ class DataFilterAgent(object):
                     logger.warning('other error:')
                     logger.warning(str(e)[-1000:])
             else:
-                result = {'status': 'other error', 'content': 'unable to extract code from response'}
+                result = {'status': 'other error',
+                          'content': 'unable to extract code from response'}
 
-            result['dialog'] = [*messages, {"role": choice.message.role, "content": choice.message.content}]
+            result['dialog'] = [
+                *messages, {"role": choice.message.role, "content": choice.message.content}]
             result['agent'] = 'DataFilterAgent'
             candidates.append(result)
 
@@ -165,28 +169,29 @@ class DataFilterAgent(object):
     def run(self, input_table, description):
         """derive a new concept based on input table, input fields, and output field name, (and description)
         """
-        
-        data_summary = generate_data_summary([input_table], include_data_samples=True)
+
+        data_summary = generate_data_summary(
+            [input_table], include_data_samples=True)
 
         user_query = f"[CONTEXT]\n\n{data_summary}\n\n[GOAL]\n\n{description}\n\n[OUTPUT]\n"
 
         logger.info(user_query)
 
-        messages = [{"role":"system", "content": SYSTEM_PROMPT},
-                    {"role":"user","content": user_query}]
-        
-        ###### the part that calls open_ai
-        response = self.client.get_completion(messages = messages)
+        messages = [{"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": user_query}]
+
+        # the part that calls open_ai
+        response = self.client.get_completion(messages=messages)
 
         return self.process_gpt_result(input_table, response, messages)
 
     def followup(self, input_table, dialog, new_instruction: str, n=1):
         """extend the input data (in json records format) to include new fields"""
 
-        messages = [*dialog, {"role":"user", 
+        messages = [*dialog, {"role": "user",
                               "content": new_instruction + '\nupdate the filter function accordingly'}]
 
-        ##### the part that calls open_ai
-        response = self.client.get_completion(messages = messages)
+        # the part that calls open_ai
+        response = self.client.get_completion(messages=messages)
 
         return self.process_gpt_result(input_table, response, messages)

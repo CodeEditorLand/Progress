@@ -128,6 +128,7 @@ def transform_data(df):
 ```
 """
 
+
 class DataRecAgent(object):
 
     def __init__(self, client, system_prompt=None):
@@ -137,31 +138,34 @@ class DataRecAgent(object):
     def process_gpt_response(self, input_tables, messages, response):
         """process gpt response to handle execution"""
 
-        #log = {'messages': messages, 'response': response.model_dump(mode='json')}
+        # log = {'messages': messages, 'response': response.model_dump(mode='json')}
 
         if isinstance(response, Exception):
             result = {'status': 'other error', 'content': str(response.body)}
             return [result]
-        
+
         candidates = []
         for choice in response.choices:
-            
+
             logger.info("\n=== Data recommendation result ===>\n")
             logger.info(choice.message.content + "\n")
-            
+
             json_blocks = extract_json_objects(choice.message.content + "\n")
             if len(json_blocks) > 0:
                 refined_goal = json_blocks[0]
             else:
-                refined_goal = { 'mode': "", 'recommendation': "", 'output_fields': [], 'visualization_fields': [], }
+                refined_goal = {'mode': "", 'recommendation': "",
+                                'output_fields': [], 'visualization_fields': [], }
 
-            code_blocks = extract_code_from_gpt_response(choice.message.content + "\n", "python")
+            code_blocks = extract_code_from_gpt_response(
+                choice.message.content + "\n", "python")
 
             if len(code_blocks) > 0:
                 code_str = code_blocks[-1]
 
                 try:
-                    result = py_sandbox.run_transform_in_sandbox2020(code_str, [t['rows'] for t in input_tables])
+                    result = py_sandbox.run_transform_in_sandbox2020(
+                        code_str, [t['rows'] for t in input_tables])
                     result['code'] = code_str
 
                     if result['status'] == 'ok':
@@ -172,11 +176,14 @@ class DataRecAgent(object):
                     logger.warning('other error:')
                     error_message = traceback.format_exc()
                     logger.warning(error_message)
-                    result = {'status': 'other error', 'code': code_str, 'content': f"Unexpected error: {error_message}"}
+                    result = {'status': 'other error', 'code': code_str,
+                              'content': f"Unexpected error: {error_message}"}
             else:
-                result = {'status': 'error', 'code': "", 'content': "No code block found in the response. The model is unable to generate code to complete the task."}
-            
-            result['dialog'] = [*messages, {"role": choice.message.role, "content": choice.message.content}]
+                result = {'status': 'error', 'code': "",
+                          'content': "No code block found in the response. The model is unable to generate code to complete the task."}
+
+            result['dialog'] = [
+                *messages, {"role": choice.message.role, "content": choice.message.content}]
             result['agent'] = 'DataRecAgent'
             result['refined_goal'] = refined_goal
             candidates.append(result)
@@ -190,30 +197,30 @@ class DataRecAgent(object):
                     logger.info(f"## {key}:\n{value}")
 
         return candidates
-    
 
     def run(self, input_tables, description, n=1):
 
-        data_summary = generate_data_summary(input_tables, include_data_samples=True)
+        data_summary = generate_data_summary(
+            input_tables, include_data_samples=True)
 
         user_query = f"[CONTEXT]\n\n{data_summary}\n\n[GOAL]\n\n{description}\n\n[OUTPUT]\n"
 
         logger.info(user_query)
 
-        messages = [{"role":"system", "content": self.system_prompt},
-                    {"role":"user","content": user_query}]
-        
+        messages = [{"role": "system", "content": self.system_prompt},
+                    {"role": "user", "content": user_query}]
+
         response = completion_response_wrapper(self.client, messages, n)
-        
+
         return self.process_gpt_response(input_tables, messages, response)
-        
 
     def followup(self, input_tables, dialog, new_instruction: str, n=1):
         """extend the input data (in json records format) to include new fields"""
 
         logger.info(f"GOAL: \n\n{new_instruction}")
 
-        messages = [*dialog, {"role":"user", "content": f"Update: \n\n{new_instruction}"}]
+        messages = [*dialog, {"role": "user",
+                              "content": f"Update: \n\n{new_instruction}"}]
 
         response = completion_response_wrapper(self.client, messages, n)
 

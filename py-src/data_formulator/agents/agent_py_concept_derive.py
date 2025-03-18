@@ -129,6 +129,7 @@ def derive(writing, reading, math):
 ```
 '''
 
+
 class PyConceptDeriveAgent(object):
 
     def __init__(self, client):
@@ -137,12 +138,15 @@ class PyConceptDeriveAgent(object):
     def run(self, input_table, input_fields, output_field, description):
         """derive a new concept based on input table, input fields, and output field name, (and description)
         """
-        
-        data_summary = generate_data_summary([input_table], include_data_samples=True)
 
-        input_fields_info = [{"name": name, "type": infer_ts_datatype(pd.DataFrame(input_table['rows']), name)} for name in input_fields]
-        
-        arg_string = ", ".join([f"{field_name_to_ts_variable_name(field['name'])}" for field in input_fields_info])
+        data_summary = generate_data_summary(
+            [input_table], include_data_samples=True)
+
+        input_fields_info = [{"name": name, "type": infer_ts_datatype(
+            pd.DataFrame(input_table['rows']), name)} for name in input_fields]
+
+        arg_string = ", ".join(
+            [f"{field_name_to_ts_variable_name(field['name'])}" for field in input_fields_info])
         code_template = f"""```python
 import re
 import datetime
@@ -158,26 +162,28 @@ def derive({arg_string}):
 
         logger.info(user_query)
 
-        messages = [{"role":"system", "content": SYSTEM_PROMPT},
-                    {"role":"user","content": user_query}]
-        
-        ###### the part that calls open_ai
-        response = self.client.get_completion(messages = messages)
+        messages = [{"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": user_query}]
 
-        #log = {'messages': messages, 'response': response.model_dump(mode='json')}
+        # the part that calls open_ai
+        response = self.client.get_completion(messages=messages)
+
+        # log = {'messages': messages, 'response': response.model_dump(mode='json')}
 
         candidates = []
         for choice in response.choices:
-            
+
             logger.info("\n=== Python Data Derive Agent ===>\n")
             logger.info(choice.message.content + "\n")
 
-            code_blocks = extract_code_from_gpt_response(choice.message.content + "\n", "python")
+            code_blocks = extract_code_from_gpt_response(
+                choice.message.content + "\n", "python")
 
             if len(code_blocks) > 0:
                 code_str = code_blocks[-1]
                 try:
-                    result =  py_sandbox.run_derive_data_in_sandbox2020(code_str, input_fields, output_field, input_table['rows'])
+                    result = py_sandbox.run_derive_data_in_sandbox2020(
+                        code_str, input_fields, output_field, input_table['rows'])
 
                     if result['status'] == 'ok':
                         new_data = json.loads(result['content'])
@@ -189,11 +195,14 @@ def derive({arg_string}):
                     print('other error:')
                     error_message = traceback.format_exc()
                     print(error_message)
-                    result = {'status': 'other error', 'content': error_message}
+                    result = {'status': 'other error',
+                              'content': error_message}
             else:
-                result = {'status': 'other error', 'content': 'unable to extract code from response'}
+                result = {'status': 'other error',
+                          'content': 'unable to extract code from response'}
 
-            result['dialog'] = [*messages, {"role": choice.message.role, "content": choice.message.content}]
+            result['dialog'] = [
+                *messages, {"role": choice.message.role, "content": choice.message.content}]
             result['agent'] = 'PyConceptDeriveAgent'
             candidates.append(result)
 

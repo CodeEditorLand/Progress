@@ -120,6 +120,7 @@ def transform_data(df_0):
 ```
 '''
 
+
 class DataTransformationAgent(object):
 
     def __init__(self, client):
@@ -128,21 +129,23 @@ class DataTransformationAgent(object):
     def process_gpt_response(self, input_tables, messages, response):
         """process gpt response to handle execution"""
 
-        #log = {'messages': messages, 'response': response.model_dump(mode='json')}
+        # log = {'messages': messages, 'response': response.model_dump(mode='json')}
 
         candidates = []
         for choice in response.choices:
-            
+
             logger.info("\n=== Data transformation agent ===>\n")
             logger.info(choice.message.content + "\n")
-            
-            code_blocks = extract_code_from_gpt_response(choice.message.content + "\n", "python")
+
+            code_blocks = extract_code_from_gpt_response(
+                choice.message.content + "\n", "python")
 
             if len(code_blocks) > 0:
 
                 code_str = code_blocks[-1]
                 try:
-                    result = py_sandbox.run_transform_in_sandbox2020(code_str, [t['rows'] for t in input_tables])
+                    result = py_sandbox.run_transform_in_sandbox2020(
+                        code_str, [t['rows'] for t in input_tables])
 
                     if result['status'] == 'ok':
                         new_data = json.loads(result['content'])
@@ -154,63 +157,67 @@ class DataTransformationAgent(object):
                     logger.warning('other error:')
                     error_message = traceback.format_exc()
                     logger.warning(error_message)
-                    result = {'status': 'other error', 'content': error_message}
+                    result = {'status': 'other error',
+                              'content': error_message}
             else:
-                result = {'status': 'other error', 'content': 'unable to extract code from response'}
-            
-            result['dialog'] = [*messages, {"role": choice.message.role, "content": choice.message.content}]
+                result = {'status': 'other error',
+                          'content': 'unable to extract code from response'}
+
+            result['dialog'] = [
+                *messages, {"role": choice.message.role, "content": choice.message.content}]
             result['agent'] = 'DataTransformationAgent'
             candidates.append(result)
 
         return candidates
-    
+
     def try_enrich_output(self, input_tables, output_fields: list[str], candidates, log):
 
         response_message = log['response']['choices'][0]['message']
-        prev_dialog = [*log['messages'], {"role": response_message['role'], 'content': response_message['content']}]
+        prev_dialog = [
+            *log['messages'], {"role": response_message['role'], 'content': response_message['content']}]
 
         return self.followup(input_tables, prev_dialog, output_fields, "include other fields", enrich_attempt=False)
 
-
     def run(self, input_tables, description, expected_fields: list[str], n=1, enrich_attempt=True):
 
-        data_summary = generate_data_summary(input_tables, include_data_samples=True)
+        data_summary = generate_data_summary(
+            input_tables, include_data_samples=True)
 
         user_query = f"[CONTEXT]\n\n{data_summary}\n\n[GOAL]\n\ndescription: {description}\nexpectedFields: {str(expected_fields)}\n\n[OUTPUT]\n"
 
         logger.info(user_query)
 
-        messages = [{"role":"system", "content": SYSTEM_PROMPT},
-                    {"role":"user","content": user_query}]
-        
-        ###### the part that calls open_ai
-        response = self.client.get_completion(messages = messages)
-        
+        messages = [{"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": user_query}]
+
+        # the part that calls open_ai
+        response = self.client.get_completion(messages=messages)
+
         return self.process_gpt_response(input_tables, messages, response)
 
-        #return self.try_enrich_output(input_tables, expected_fields, candidates, log)
-        
+        # return self.try_enrich_output(input_tables, expected_fields, candidates, log)
 
     def followup(self, input_tables, dialog, output_fields: list[str], new_instruction: str, n=1, enrich_attempt=True):
         """extend the input data (in json records format) to include new fields"""
-        output_fields_str = ", ".join([f"\"{name}\"" for name in output_fields])
-        
+        output_fields_str = ", ".join(
+            [f"\"{name}\"" for name in output_fields])
+
         if len(output_fields) > 0:
             output_fields_instr = f"\n\nThe output data frame should include fields {output_fields_str}."
         else:
             output_fields_instr = ""
 
-        messages = [*dialog, {"role":"user", 
+        messages = [*dialog, {"role": "user",
                               "content": "Update the code above based on the following instruction:\n\n" + new_instruction + output_fields_instr}]
 
-        ##### the part that calls open_ai
-        response = self.client.get_completion(messages = messages)
-        
+        # the part that calls open_ai
+        response = self.client.get_completion(messages=messages)
+
         logger.info(response)
-        
+
         # if enrich_attempt:
         #     return self.try_enrich_output(input_tables, output_fields, candidates, log)
         # else:
-        #     return candidates, log 
-        
+        #     return candidates, log
+
         return self.process_gpt_response(input_tables, messages, response)

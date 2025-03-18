@@ -64,6 +64,7 @@ def transform_data(df_0):
 2. **Calculate** the `7-day rolling average` of `Cases`.
 '''
 
+
 class CodeExplanationAgent(object):
 
     def __init__(self, client):
@@ -71,18 +72,20 @@ class CodeExplanationAgent(object):
 
     def run(self, input_tables, code):
 
-        data_summary = generate_data_summary(input_tables, include_data_samples=True)
+        data_summary = generate_data_summary(
+            input_tables, include_data_samples=True)
 
         user_query = f"[CONTEXT]\n\n{data_summary}\n\n[CODE]\n\here is the transformation code: {code}\n\n[EXPLANATION]\n"
 
         logger.info(user_query)
 
-        messages = [{"role":"system", "content": SYSTEM_PROMPT},
-                    {"role":"user","content": user_query}]
-        
-        ###### the part that calls open_ai
-        response = self.client.get_completion(messages = messages)
-        
-        logger.info(f"=== explanation output ===>\n{response.choices[0].message.content}\n")
-        
+        messages = [{"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": user_query}]
+
+        # the part that calls open_ai
+        response = self.client.get_completion(messages=messages)
+
+        logger.info(
+            f"=== explanation output ===>\n{response.choices[0].message.content}\n")
+
         return response.choices[0].message.content

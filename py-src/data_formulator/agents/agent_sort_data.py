@@ -62,7 +62,6 @@ For example:
 '''
 
 
-
 class SortDataAgent(object):
 
     def __init__(self, client):
@@ -79,22 +78,22 @@ class SortDataAgent(object):
 
         logger.info(user_query)
 
-        messages = [{"role":"system", "content": SYSTEM_PROMPT},
-                    {"role":"user","content": user_query}]
-        
-        ###### the part that calls open_ai
-        response = self.client.get_completion(messages = messages)
+        messages = [{"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": user_query}]
 
-        #log = {'messages': messages, 'response': response.model_dump(mode='json')}
+        # the part that calls open_ai
+        response = self.client.get_completion(messages=messages)
+
+        # log = {'messages': messages, 'response': response.model_dump(mode='json')}
 
         candidates = []
         for choice in response.choices:
-            
+
             logger.info("\n=== Sort data agent ===>\n")
             logger.info(choice.message.content + "\n")
-            
+
             json_blocks = extract_json_objects(choice.message.content + "\n")
-            
+
             if len(json_blocks) > 0:
                 result = {'status': 'ok', 'content': json_blocks[0]}
             else:
@@ -102,10 +101,12 @@ class SortDataAgent(object):
                     json_block = json.loads(choice.message.content + "\n")
                     result = {'status': 'ok', 'content': json_block}
                 except:
-                    result = {'status': 'other error', 'content': 'unable to extract VegaLite script from response'}
-            
+                    result = {'status': 'other error',
+                              'content': 'unable to extract VegaLite script from response'}
+
             # individual dialog for the agent
-            result['dialog'] = [*messages, {"role": choice.message.role, "content": choice.message.content}]
+            result['dialog'] = [
+                *messages, {"role": choice.message.role, "content": choice.message.content}]
             result['agent'] = 'SortDataAgent'
 
             candidates.append(result)

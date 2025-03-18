@@ -58,7 +58,6 @@ The cleaning process must follow instructions below:
 '''
 
 
-
 EXAMPLE = '''
 [RAW DATA]
 
@@ -76,6 +75,7 @@ Totals (7 entries)	5	5	5	15
 
 '''
 
+
 class DataCleanAgent(object):
 
     def __init__(self, client):
@@ -84,7 +84,7 @@ class DataCleanAgent(object):
     def run(self, content_type, raw_data, image_cleaning_instruction):
         """derive a new concept based on the raw input data
         """
-   
+
         if content_type == "text":
             user_prompt = {
                 "role": "user",
@@ -102,7 +102,7 @@ class DataCleanAgent(object):
 
             user_prompt = {
                 'role': 'user',
-                'content': [ {
+                'content': [{
                     'type': 'text',
                     'text': '''[RAW_DATA]\n\n'''},
                     {
@@ -111,11 +111,11 @@ class DataCleanAgent(object):
                             "url": raw_data,
                             "detail": "high"
                         }
-                    },
+                },
                     {
                         'type': 'text',
                         'text': f'''{cleaning_prompt}[OUTPUT]\n\n'''
-                    }, 
+                },
                 ]
             }
 
@@ -123,32 +123,35 @@ class DataCleanAgent(object):
 
         system_message = {
             'role': 'system',
-            'content': [ {'type': 'text', 'text': SYSTEM_PROMPT}]}
+            'content': [{'type': 'text', 'text': SYSTEM_PROMPT}]}
 
         messages = [system_message, user_prompt]
-        
-        ###### the part that calls open_ai
-        response = self.client.get_completion(messages = messages)
+
+        # the part that calls open_ai
+        response = self.client.get_completion(messages=messages)
 
         candidates = []
         for choice in response.choices:
-            
+
             logger.info("\n=== Python Data Clean Agent ===>\n")
             logger.info(choice.message.content + "\n")
 
-            code_blocks = extract_code_from_gpt_response(choice.message.content + "\n", "csv")
+            code_blocks = extract_code_from_gpt_response(
+                choice.message.content + "\n", "csv")
             reason_blocks = extract_json_objects(choice.message.content + "\n")
 
             if len(code_blocks) > 0:
                 result = {
-                    'status': 'ok', 
-                    'content': code_blocks[-1], 
+                    'status': 'ok',
+                    'content': code_blocks[-1],
                     'info': reason_blocks[-1] if len(reason_blocks) > 0 else {"reason": "no reason presented", "mode": "data cleaning"}
                 }
             else:
-                result = {'status': 'other error', 'content': 'unable to extract code from response'}
+                result = {'status': 'other error',
+                          'content': 'unable to extract code from response'}
 
-            result['dialog'] = [*messages, {"role": choice.message.role, "content": choice.message.content}]
+            result['dialog'] = [
+                *messages, {"role": choice.message.role, "content": choice.message.content}]
             result['agent'] = 'DataCleanAgent'
             candidates.append(result)
 

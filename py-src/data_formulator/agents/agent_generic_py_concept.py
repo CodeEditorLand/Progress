@@ -161,15 +161,16 @@ class GenericPyConceptDeriveAgent(object):
         self.client = client
 
     def process_gpt_response(self, input_table, output_field, response, messages):
-        #log = {'messages': messages, 'response': response.model_dump(mode='json')}
+        # log = {'messages': messages, 'response': response.model_dump(mode='json')}
 
         candidates = []
         for choice in response.choices:
-            
+
             logger.info("\n=== Generic Python Data Derive Agent ===>\n")
             logger.info(choice.message.content + "\n")
 
-            code_blocks = extract_code_from_gpt_response(choice.message.content + "\n", "python")
+            code_blocks = extract_code_from_gpt_response(
+                choice.message.content + "\n", "python")
 
             if len(code_blocks) > 0:
                 code_str = code_blocks[-1]
@@ -183,7 +184,8 @@ output = json.dumps(df.to_dict("records"))
 #print(output)
 '''
 
-                    result = py_sandbox.run_data_process_in_sandbox(code_str, input_table['rows'], exec_str)
+                    result = py_sandbox.run_data_process_in_sandbox(
+                        code_str, input_table['rows'], exec_str)
 
                     if result['status'] == 'ok':
                         new_data = json.loads(result['content'])
@@ -195,11 +197,14 @@ output = json.dumps(df.to_dict("records"))
                     logger.warning('other error:')
                     error_message = traceback.format_exc()
                     logger.warning(error_message)
-                    result = {'status': 'other error', 'content': error_message}
+                    result = {'status': 'other error',
+                              'content': error_message}
             else:
-                result = {'status': 'other error', 'content': 'unable to extract code from response'}
+                result = {'status': 'other error',
+                          'content': 'unable to extract code from response'}
 
-            result['dialog'] = [*messages, {"role": choice.message.role, "content": choice.message.content}]
+            result['dialog'] = [
+                *messages, {"role": choice.message.role, "content": choice.message.content}]
             result['agent'] = 'GenericPyConceptDeriveAgent'
             candidates.append(result)
 
@@ -208,30 +213,32 @@ output = json.dumps(df.to_dict("records"))
     def run(self, input_table, output_field, description):
         """derive a new concept based on input table, input fields, and output field name, (and description)
         """
-        
-        data_summary = generate_data_summary([input_table], include_data_samples=True)
+
+        data_summary = generate_data_summary(
+            [input_table], include_data_samples=True)
 
         user_query = f"[CONTEXT]\n\n{data_summary}\n\n[GOAL]\n\n{description}\n\n[OUTPUT]\n"
 
         logger.info(user_query)
 
-        messages = [{"role":"system", "content": SYSTEM_PROMPT},
-                    {"role":"user","content": user_query}]
-        
-        ###### the part that calls open_ai
-        response = self.client.get_completion(messages = messages)
+        messages = [{"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": user_query}]
+
+        # the part that calls open_ai
+        response = self.client.get_completion(messages=messages)
 
         return self.process_gpt_response(input_table, output_field, response, messages)
 
     def followup(self, input_table, dialog, output_field: str, new_instruction: str, n=1):
         """extend the input data (in json records format) to include new fields"""
 
-        messages = [*dialog, {"role":"user", 
+        messages = [*dialog, {"role": "user",
                               "content": new_instruction + '\n update the function accordingly'}]
 
-        ##### the part that calls open_ai
-        response = self.client.get_completion(messages = messages)
+        # the part that calls open_ai
+        response = self.client.get_completion(messages=messages)
 
-        candidates = self.process_gpt_response(input_table, output_field, response, messages)
+        candidates = self.process_gpt_response(
+            input_table, output_field, response, messages)
 
         return candidates

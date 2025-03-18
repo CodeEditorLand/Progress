@@ -1,63 +1,70 @@
-
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { FC } from 'react'
-import { useDrag } from 'react-dnd'
+import { FC } from "react";
+import { useDrag } from "react-dnd";
 
-import '../scss/ConceptShelf.scss';
+import "../scss/ConceptShelf.scss";
 
-import { useTheme } from '@mui/material/styles';
-
-import {
-    Card,
-    Box,
-    Typography,
-} from '@mui/material';
-
-import React from 'react';
+import { Box, Card, Typography } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
+import React from "react";
 
 export interface OperatorCardProp {
-    operator: string
+	operator: string;
 }
 
-export const OperatorCard: FC<OperatorCardProp> = function OperatorCard({ operator }) {
-    // concept cards are draggable cards that can be dropped into encoding shelf
-    
-    let theme = useTheme();
+export const OperatorCard: FC<OperatorCardProp> = function OperatorCard({
+	operator,
+}) {
+	// concept cards are draggable cards that can be dropped into encoding shelf
 
-    const [{ isDragging }, drag] = useDrag(() => ({
-        type: "operator-card",
-        item: { type: 'operator-card', operator, source: "conceptShelf" },
-        collect: (monitor) => ({
-            isDragging: monitor.isDragging(),
-            handlerId: monitor.getHandlerId(),
-        }),
-    }));
+	let theme = useTheme();
 
-    let opacity = isDragging ? 0.4 : 1;
-    let fontStyle = "inherit";
-    let border = "hidden";
+	const [{ isDragging }, drag] = useDrag(() => ({
+		type: "operator-card",
+		item: { type: "operator-card", operator, source: "conceptShelf" },
+		collect: (monitor) => ({
+			isDragging: monitor.isDragging(),
+			handlerId: monitor.getHandlerId(),
+		}),
+	}));
 
-    const cursorStyle = isDragging ? "grabbing" : "grab";
-   
-    let backgroundColor = theme.palette.secondary.light;
+	let opacity = isDragging ? 0.4 : 1;
+	let fontStyle = "inherit";
+	let border = "hidden";
 
-    let cardComponent = (
-        <Card sx={{ minWidth: 80, backgroundColor, width: 'calc(50% - 6px)' }}
-            variant="outlined"
-            style={{ opacity, border, fontStyle, marginLeft: '3px' }}
-            color="secondary"
-            className={`data-field-list-item draggable-card `}>
-            <Box ref={drag} sx={{ cursor: cursorStyle }}
-                 className={`draggable-card-header draggable-card-inner`}>
-                <Typography className="draggable-card-title" 
-                    sx={{ marginLeft: '6px !important', fontSize: 13, height: 28, width: "100%", fontStyle: 'italic' }} component={'span'} gutterBottom>
-                    {operator}
-                </Typography>
-            </Box>
-        </Card>
-    )
+	const cursorStyle = isDragging ? "grabbing" : "grab";
 
-    return cardComponent;
-}
+	let backgroundColor = theme.palette.secondary.light;
+
+	let cardComponent = (
+		<Card
+			sx={{ minWidth: 80, backgroundColor, width: "calc(50% - 6px)" }}
+			variant="outlined"
+			style={{ opacity, border, fontStyle, marginLeft: "3px" }}
+			color="secondary"
+			className={`data-field-list-item draggable-card`}>
+			<Box
+				ref={drag}
+				sx={{ cursor: cursorStyle }}
+				className={`draggable-card-header draggable-card-inner`}>
+				<Typography
+					className="draggable-card-title"
+					sx={{
+						marginLeft: "6px !important",
+						fontSize: 13,
+						height: 28,
+						width: "100%",
+						fontStyle: "italic",
+					}}
+					component={"span"}
+					gutterBottom>
+					{operator}
+				</Typography>
+			</Box>
+		</Card>
+	);
+
+	return cardComponent;
+};

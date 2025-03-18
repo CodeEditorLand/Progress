@@ -1,29 +1,29 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import React from 'react';
-import './index.css';
+import React from "react";
 
-import store from './app/store'
-import { Provider } from 'react-redux'
+import "./index.css";
 
-import { AppFC } from './app/App';
+import { createRoot } from "react-dom/client";
+import { Provider } from "react-redux";
+import { persistStore } from "redux-persist";
+import { PersistGate } from "redux-persist/integration/react";
 
-import { PersistGate } from 'redux-persist/integration/react'
-import { persistStore } from 'redux-persist'
-import { createRoot } from 'react-dom/client';
+import { AppFC } from "./app/App";
+import store from "./app/store";
 
 let persistor = persistStore(store);
 
-
-const domNode = document.getElementById('root') as HTMLElement;
+const domNode = document.getElementById("root") as HTMLElement;
 const root = createRoot(domNode);
 
-
-root.render(<React.StrictMode>
-        <Provider store={store}>
-            <PersistGate loading={null} persistor={persistor}>
-                <AppFC />
-            </PersistGate>
-        </Provider>
-</React.StrictMode>);
+root.render(
+	<React.StrictMode>
+		<Provider store={store}>
+			<PersistGate loading={null} persistor={persistor}>
+				<AppFC />
+			</PersistGate>
+		</Provider>
+	</React.StrictMode>,
+);
