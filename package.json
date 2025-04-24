@@ -36,7 +36,7 @@
 		"dompurify": "3.2.5",
 		"localforage": "1.10.0",
 		"lodash": "4.17.21",
-		"markdown-to-jsx": "7.7.4",
+		"markdown-to-jsx": "7.7.6",
 		"mui-markdown": "2.0.1",
 		"prettier": "3.5.3",
 		"prism-react-renderer": "2.4.1",
