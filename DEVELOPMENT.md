@@ -22,7 +22,6 @@ How to set up your local machine.
     pip install -r requirements.txt
     ```
 - **Configure environment variable (optional)s**
-
     - copy `api-keys.env.example` to `api-keys.env` and add your API keys.
     - required fields for different providers are different, please refer to the
       [LiteLLM setup](https://docs.litellm.ai/docs#litellm-python-sdk) guide for
@@ -33,7 +32,6 @@ How to set up your local machine.
       the app, so you don't need to set the API keys in the app UI.
 
 - **Run the app**
-
     - **Windows**
 
     ```bash

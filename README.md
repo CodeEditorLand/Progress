@@ -23,7 +23,6 @@ Formulator now!
 ## News 🔥🔥🔥
 
 - [02-20-2025] Data Formulator 0.1.6 released!
-
     - Now supports working with multiple datasets at once! Tell Data Formulator
       which data tables you would like to use in the encoding shelf, and it will
       figure out how to join the tables to create a visualization to answer your
@@ -34,7 +33,6 @@ Formulator now!
       features.
 
 - [02-12-2025] More models supported now!
-
     - Now supports OpenAI, Azure, Ollama, and Anthropic models (and more powered
       by [LiteLLM](https://github.com/BerriAI/litellm));
     - Models with strong code generation and instruction following capabilities
@@ -46,7 +44,6 @@ Formulator now!
       [[comment here]](https://github.com/microsoft/data-formulator/issues/49)
 
 - [11-07-2024] Minor fun update: data visualization challenges!
-
     - We added a few visualization challenges with the sample datasets. Can you
       complete them all?
       [[try them out!]](https://github.com/microsoft/data-formulator/issues/53#issue-2641841252)
